@@ -75,9 +75,16 @@ class GuideCreatorFlow(Flow[GuideCreatorState]):
         # Make the LLM call with JSON response format
         response = llm.call(messages=messages)
 
-        # Parse the JSON response
-        outline_dict = json.loads(response)
-        self.state.guide_outline = GuideOutline(**outline_dict)
+        # Normalize response to a dict we can persist
+        if isinstance(response, GuideOutline):
+            self.state.guide_outline = response
+            outline_dict = response.model_dump()
+        elif isinstance(response, dict):
+            outline_dict = response
+            self.state.guide_outline = GuideOutline(**outline_dict)
+        else:
+            outline_dict = json.loads(response)
+            self.state.guide_outline = GuideOutline(**outline_dict)
 
         # Ensure output directory exists before saving
         os.makedirs("output", exist_ok=True)
